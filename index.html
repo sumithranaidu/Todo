@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="todo.css">
+</head>
+<body>
+    <div class="todo-container">
+        <h2>Todo List</h2>
+
+        <div id="input-group">
+            <div>
+                <h3>Add new</h3>
+            </div>
+            <div class="input-group"> 
+                <input type="text" id="taskInput" placeholder="Type here..." />
+                <button onclick="addTask()">+</button>
+            </div>
+        </div>
+
+        <div id="input-group-1">
+            <div>
+                <h3>Filter</h3>
+            </div>
+            <div class="input-group-1"> 
+                <input type="text" id="filterInput" placeholder="Filter tasks..." onkeyup="filterTasks()">
+            </div> 
+        </div>
+
+        <div id="input-group-2">
+            <h3>Active</h3>
+            <ul id="activeTasks"></ul>
+        </div>
+        <div id="input-group-3">  
+            <h3>Completed</h3>
+            <ul id="completedTasks"></ul>
+        </div>
+
+        <div id="button">  
+            <button class="clear-btn" onclick="clearAll()">CLEAR ALL</button>
+        </div>
+    </div>
+
+    <div id="error-box" class="error-box" style="display: none;">
+        <span id="error-message">Type the todo first</span>
+        <button id="close-error" onclick="closeError()">X</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", loadTasks);
+
+        function showError(message) {
+            let errorBox = document.getElementById("error-box");
+            let errorMessage = document.getElementById("error-message");
+            errorMessage.textContent = message;
+            errorBox.style.display = "flex";
+        }
+
+        function closeError() {
+            document.getElementById("error-box").style.display = "none";
+        }
+
+        function addTask() {
+            let taskInput = document.getElementById("taskInput");
+            let taskText = taskInput.value.trim();
+
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            let isDuplicate = tasks.some(task => task.text.toLowerCase() === taskText.toLowerCase());
+
+            if (taskText === "") {
+                showError("Type the todo first!");
+                return;
+            }
+
+            if (isDuplicate) {
+                showError("Task already exists!");
+                return;
+            }
+
+            tasks.push({ text: taskText, completed: false });
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+
+            taskInput.value = "";
+            loadTasks();
+        }
+
+        function loadTasks() {
+            let activeList = document.getElementById("activeTasks");
+            let completedList = document.getElementById("completedTasks");
+
+            activeList.innerHTML = "";
+            completedList.innerHTML = "";
+
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+            tasks.forEach((task, index) => {
+                let li = document.createElement("li");
+
+                let checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = task.completed;
+                checkbox.onclick = () => toggleComplete(index);
+
+                let label = document.createElement("label");
+                label.textContent = task.text;
+                label.classList.add("task-label");
+                label.style.display = "inline";
+                if (task.completed) {
+                    label.style.textDecoration = "line-through";
+                    label.style.color = "gray";
+                }
+
+                let textarea = document.createElement("textarea");
+                textarea.value = task.text;
+                textarea.classList.add("task-textarea");
+                textarea.style.display = "none";
+                textarea.addEventListener("blur", () => saveTask(index, textarea, label));
+                textarea.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        textarea.blur();
+                    }
+                });
+
+                let editBtn = document.createElement("button");
+                editBtn.innerHTML = "✏️";
+                editBtn.className = "edit";
+                editBtn.onclick = () => editTask(textarea, label);
+
+                let deleteBtn = document.createElement("button");
+                deleteBtn.innerHTML = "❌";
+                deleteBtn.className = "delete";
+                deleteBtn.onclick = () => deleteTask(index);
+
+                li.appendChild(checkbox);
+                li.appendChild(label);
+                li.appendChild(textarea);
+                li.appendChild(editBtn);
+                li.appendChild(deleteBtn);
+
+                if (task.completed) {
+                    completedList.appendChild(li);
+                } else {
+                    activeList.appendChild(li);
+                }
+            });
+        }
+
+        function editTask(textarea, label) {
+            label.style.display = "none";
+            textarea.style.display = "inline";
+            textarea.focus();
+        }
+
+        function saveTask(index, textarea, label) {
+            let tasks = JSON.parse(localStorage.getItem("tasks"));
+            tasks[index].text = textarea.value.trim();
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            label.textContent = textarea.value.trim();
+            textarea.style.display = "none";
+            label.style.display = "inline";
+        }
+
+        function toggleComplete(index) {
+            let tasks = JSON.parse(localStorage.getItem("tasks"));
+            tasks[index].completed = !tasks[index].completed;
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+        }
+
+        function deleteTask(index) {
+            let tasks = JSON.parse(localStorage.getItem("tasks"));
+            tasks.splice(index, 1);
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+        }
+
+        function clearAll() {
+            localStorage.removeItem("tasks");
+            loadTasks();
+        }
+
+        function filterTasks() {
+            let filter = document.getElementById("filterInput").value.toLowerCase();
+            let tasks = document.querySelectorAll("li");
+
+            tasks.forEach(task => {
+                let taskText = task.querySelector("label")?.textContent.toLowerCase();
+                task.style.display = taskText.includes(filter) ? "flex" : "none";
+            });
+        }
+    </script>
+</body>
+</html>
+
+
